@@ -49,7 +49,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi2;
-uint8_t data;
 
 /* USER CODE BEGIN PV */
 
@@ -60,7 +59,9 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI2_Init(void);
 /* USER CODE BEGIN PFP */
-
+uint8_t data_rx;
+uint8_t data_tx = 2;
+uint8_t data[2];
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -70,9 +71,11 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
   UNUSED(hspi);
 	if(hspi->Instance == SPI2)
 	{
-		HAL_SPI_Receive_IT(&hspi2,&data,1);
+		HAL_SPI_Receive_IT(&hspi2,data,2);
 	}
+	
 }
+
 void clock()
 {
 	SCK(set);
@@ -80,14 +83,12 @@ void clock()
 	SCK(reset);
 	HAL_Delay(5);
 }
-
 void SPI_Init()
 {
 	SCK(reset);
 	MOSI(reset);
 	SS(set);
 }
-
 void SPI_Soft_Transmit (uint8_t data)
 {
 	SS(reset);
@@ -107,17 +108,19 @@ void SPI_Soft_Transmit (uint8_t data)
 	}
 	SS(set);
 }
-
 uint8_t SPI_Soft_Receive()
 {
+	SS(reset);
 	uint8_t data=0x00, i=0;
-	while(i<8)
+	while(i<7)
 	{
 		clock();
-		HAL_Delay(2);
 		data=data<<1;
 		data=data | MISO;
+		i++;
+		HAL_Delay(2);
 	}
+	SS(set);
 	return data;
 }
 /* USER CODE END 0 */
@@ -150,10 +153,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
 	SPI_Init();
-    MX_GPIO_Init();
-    MX_SPI2_Init();
-	HAL_SPI_Receive_IT(&hspi2,&data,1);
+  MX_GPIO_Init();
+  MX_SPI2_Init();
+	HAL_SPI_Receive_IT(&hspi2,data,2);
 	SPI_Soft_Transmit(123);
+	SPI_Soft_Transmit(124);
+	
+	
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -163,7 +169,10 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+		//SPI_Soft_Transmit(123);	
+		HAL_SPI_Transmit_IT(&hspi2,&data_tx,1);
+	  data_rx = SPI_Soft_Receive();
+		HAL_Delay(500);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
